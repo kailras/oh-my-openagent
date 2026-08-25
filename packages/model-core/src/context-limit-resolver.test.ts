@@ -201,6 +201,37 @@ describe("resolveActualContextLimit", () => {
     expect(actualLimit).toBe(1_000_000)
   })
 
+  it("returns GA 1M for claude-opus-5-fast without explicit 1M mode", () => {
+    // given
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
+    delete process.env[VERTEX_CONTEXT_ENV_KEY]
+
+    // when
+    const actualLimit = resolveActualContextLimit("anthropic", "claude-opus-5-fast", {
+      anthropicContext1MEnabled: false,
+    })
+
+    // then
+    expect(actualLimit).toBe(1_000_000)
+  })
+
+  it("uses cached limit for claude-opus-5-fast when cache exists", () => {
+    // given
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
+    delete process.env[VERTEX_CONTEXT_ENV_KEY]
+    const modelContextLimitsCache = new Map<string, number>()
+    modelContextLimitsCache.set("anthropic/claude-opus-5-fast", 1_000_000)
+
+    // when
+    const actualLimit = resolveActualContextLimit("anthropic", "claude-opus-5-fast", {
+      anthropicContext1MEnabled: false,
+      modelContextLimitsCache,
+    })
+
+    // then
+    expect(actualLimit).toBe(1_000_000)
+  })
+
   it("keeps 200K default for Anthropic models outside the GA 1M allowlist", () => {
     // given
     delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
