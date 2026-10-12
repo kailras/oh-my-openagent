@@ -166,7 +166,10 @@ export async function checkSystem(deps: SystemCheckDeps = defaultDeps): Promise<
     })
   }
 
+  // nd custom: a `-nd.N` build is pinned on purpose to its base release; npm's latest is not an update for it.
+  const customBuild = /-nd\.\d+$/.test(systemInfo.loadedVersion ?? "")
   if (
+    !customBuild &&
     systemInfo.loadedVersion &&
     latestVersion &&
     !deps.compareVersions(systemInfo.loadedVersion, latestVersion)

@@ -185,6 +185,28 @@ describe("system check", () => {
     })
   })
 
+  describe("#given an nd custom build (nd custom)", () => {
+    it("does not call a pinned -nd.N build outdated", async () => {
+      //#given
+      mockGetLoadedPluginVersion.mockReturnValue({
+        cacheDir: "/Users/test/.cache/opencode",
+        cachePackagePath: "/tmp/package.json",
+        installedPackagePath: "/tmp/node_modules/oh-my-openagent/package.json",
+        expectedVersion: "5.1.19-nd.2",
+        loadedVersion: "5.1.19-nd.2",
+      })
+      mockGetLatestPluginVersion.mockResolvedValue("5.1.30")
+      mockCompareVersions.mockReturnValue(false)
+
+      //#when — a fresh module instance: other doctor test files replace ./system through mock.module
+      const { checkSystem: freshCheckSystem } = await import(`./system?nd=${Date.now()}`)
+      const result = await freshCheckSystem(createSystemDeps())
+
+      //#then
+      expect(result.issues.find((issue: { title: string }) => issue.title === "Loaded plugin is outdated")).toBeUndefined()
+    })
+  })
+
   describe("#given OpenCode plugin entry uses legacy package name", () => {
     it("adds a warning for a bare legacy entry", async () => {
       //#given
