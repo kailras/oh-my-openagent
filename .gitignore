@@ -77,3 +77,6 @@ plans/
 
 # Rust workspace (crates/senpi-desktop-*)
 /target
+
+# nd custom: release staging (script/nd-release.ts)
+.nd-release/

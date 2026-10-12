@@ -40,6 +40,24 @@ export const BUILD_NODES: BuildNode[] = [
  */
 export const BUILD_PROFILES: Record<string, readonly string[]> = {
 	"omo-native": ["lsp-daemon", "ast-grep-mcp"],
+	/**
+	 * nd custom: what the OpenCode plugin package needs at runtime and nothing for the Codex Light plugin, Senpi or the
+	 * native binary — the server and TUI bundles, bundled skills, the CLI (doctor), schemas, and the MCP runtimes the
+	 * plugin spawns. `script/nd-release.ts` builds this profile.
+	 */
+	"opencode-plugin": [
+		"index",
+		"node-require-shim",
+		"tui",
+		"shared-skills-assets",
+		"cli",
+		"cli-node",
+		"schema",
+		"omo-schema",
+		"git-bash-mcp",
+		"lsp-tools-mcp",
+		"lsp-daemon",
+	],
 }
 
 export function selectBuildNodes(

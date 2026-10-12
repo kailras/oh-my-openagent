@@ -9,6 +9,7 @@ import { createManagers } from "../create-managers"
 import { createRuntimeTmuxConfig, isTmuxIntegrationEnabled } from "../create-runtime-tmux-config"
 import { createTools } from "../create-tools"
 import { createRuntimeSkillSourceServer, selectRuntimeSecuritySkills } from "../features/opencode-runtime-skills"
+import { installUsageObserver } from "../features/nd-usage-observer"
 import { initializeOpenClaw } from "../openclaw"
 import { createPluginDispose } from "../plugin-dispose"
 import { createPluginInterface } from "../plugin-interface"
@@ -75,6 +76,7 @@ export type PluginModuleDeps = {
   recordPluginTelemetry: typeof recordPluginTelemetry
   initI18n: typeof initI18n
   initializeOpenClaw: typeof initializeOpenClaw
+  installUsageObserver: typeof installUsageObserver
   isTmuxIntegrationEnabled: typeof isTmuxIntegrationEnabled
   startTmuxCheck: typeof startTmuxCheck
   createFirstMessageVariantGate: typeof createFirstMessageVariantGate
@@ -109,6 +111,7 @@ const defaultPluginModuleDeps: PluginModuleDeps = {
   recordPluginTelemetry,
   initI18n,
   initializeOpenClaw,
+  installUsageObserver,
   isTmuxIntegrationEnabled,
   startTmuxCheck,
   createFirstMessageVariantGate,
@@ -222,6 +225,14 @@ export function createPluginModule(overrides: Partial<PluginModuleDeps> = {}): P
       deps.recordPluginTelemetry({ configEnabled: pluginConfig.telemetry })
     } catch (error) {
       deps.log("[posthog] plugin telemetry failed", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+    // nd custom: record the providers' subscription rate-limit headers for the dashboard (once per process).
+    try {
+      deps.installUsageObserver()
+    } catch (error) {
+      deps.log("[nd-usage-observer] install failed", {
         error: error instanceof Error ? error.message : String(error),
       })
     }

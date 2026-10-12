@@ -32,7 +32,7 @@ afterEach(() => {
 })
 
 describe("checkTelemetry", () => {
-  it("reports enabled status and last daily active date", async () => {
+  it("reports enabled status and last daily active date when opted in", async () => {
     // given
     const dataHomePath = join(tmpdir(), `doctor-telemetry-${Date.now()}-${Math.random()}`)
     const stateDir = join(dataHomePath, "oh-my-opencode")
@@ -40,7 +40,7 @@ describe("checkTelemetry", () => {
     writeFileSync(join(stateDir, "posthog-activity.json"), `${JSON.stringify({ lastActiveDayUTC: "2026-06-28" })}\n`)
     process.env.XDG_DATA_HOME = dataHomePath
     delete process.env.OMO_DISABLE_POSTHOG
-    delete process.env.OMO_SEND_ANONYMOUS_TELEMETRY
+    process.env.OMO_SEND_ANONYMOUS_TELEMETRY = "1"
     const { checkTelemetry } = await import(`./telemetry?enabled=${Date.now()}`)
 
     // when
@@ -65,5 +65,18 @@ describe("checkTelemetry", () => {
     expect(result.status).toBe("pass")
     expect(result.message).toBe("Telemetry: disabled")
     expect(result.issues).toEqual([])
+  })
+
+  it("#given no telemetry setting #when checking #then reports disabled (nd custom: opt-in)", async () => {
+    // given
+    delete process.env.OMO_DISABLE_POSTHOG
+    delete process.env.OMO_SEND_ANONYMOUS_TELEMETRY
+    const { checkTelemetry } = await import(`./telemetry?default=${Date.now()}`)
+
+    // when
+    const result = await checkTelemetry()
+
+    // then
+    expect(result.message).toBe("Telemetry: disabled")
   })
 })

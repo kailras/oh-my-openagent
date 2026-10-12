@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   getPlatformPackageCandidates,
   getBinaryPath,
@@ -116,7 +117,17 @@ function getMainPackageVersion() {
   return packageJson?.version ?? null;
 }
 
+/**
+ * nd custom: only an installed copy (under node_modules) may clear OpenCode's plugin cache. A `bun install` in this
+ * repository's own checkout runs this script too, and must not delete the cached plugin a running engine still reads
+ * files from (2026-10-13: it removed the live engine's oh-my-openagent@5.1.19 cache).
+ */
+function isInstalledCopy() {
+  return fileURLToPath(import.meta.url).split(/[\\/]/).includes("node_modules");
+}
+
 function invalidateOpenCodePluginCache() {
+  if (!isInstalledCopy()) return;
   const cacheDir = join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "opencode");
   const parentDirs = [cacheDir, join(cacheDir, "packages")];
   const prefixes = OPENCODE_PLUGIN_PACKAGES.map((packageName) => `${packageName}@`);

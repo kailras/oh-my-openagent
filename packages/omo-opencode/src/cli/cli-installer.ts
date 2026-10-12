@@ -215,7 +215,7 @@ export async function runCliInstaller(args: InstallArgs, version: string): Promi
   }
 
   printInfo(
-    "Anonymous telemetry is enabled by default. Disable it with OMO_SEND_ANONYMOUS_TELEMETRY=0 or OMO_DISABLE_POSTHOG=1.",
+    "Anonymous telemetry is off in this build. Opt in with OMO_SEND_ANONYMOUS_TELEMETRY=1 or telemetry: true in omo.jsonc.",
   )
   printInfo("Docs: docs/legal/privacy-policy.md and docs/legal/terms-of-service.md")
   console.log()

@@ -98,6 +98,11 @@ function isTruthy(value: string | undefined): boolean {
   return value === "1" || value === "true" || value === "yes"
 }
 
+/**
+ * nd custom: anonymous telemetry is opt-in. It is sent only when `telemetry: true` is set in omo.jsonc or
+ * OMO_SEND_ANONYMOUS_TELEMETRY is truthy, and an explicit off (config false, OMO_DISABLE_POSTHOG,
+ * OMO_SEND_ANONYMOUS_TELEMETRY=0) always wins. Upstream sends it unless turned off.
+ */
 export function shouldDisablePostHog(env: TelemetryEnv, configEnabled: boolean | undefined): boolean {
   if (configEnabled === false) {
     return true
@@ -107,7 +112,12 @@ export function shouldDisablePostHog(env: TelemetryEnv, configEnabled: boolean |
     return true
   }
 
-  return isFalsy(env.OMO_SEND_ANONYMOUS_TELEMETRY?.trim().toLowerCase())
+  const sendFlag = env.OMO_SEND_ANONYMOUS_TELEMETRY?.trim().toLowerCase()
+  if (isFalsy(sendFlag)) {
+    return true
+  }
+
+  return !(configEnabled === true || isTruthy(sendFlag))
 }
 
 function createCoreCompatibleTelemetryEnv(env: NodeJS.ProcessEnv): TelemetryEnv {

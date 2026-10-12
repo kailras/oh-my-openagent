@@ -1,0 +1,40 @@
+# nd custom — 나만의 oh-my-openagent
+
+이 브랜치(`nd/custom`)는 nd-work-command 대시보드(`~/Projects/nd-work-command`)가 쓰는 OpenCode 엔진 전용 oh-my-openagent입니다. 업스트림을 그대로 따라가지 않고, **검증한 릴리스(v5.1.19)를 기준으로 이 환경에 필요한 것만 더하고 고칩니다.**
+
+- 기준: 업스트림 태그 `v5.1.19` (2026-10-05). 버전 표기는 `5.1.19-nd.<n>` — 바꿀 때마다 `n`을 올립니다.
+- 쓰는 곳: OpenCode 1.18.34 `opencode serve`(헤드리스) + 대시보드. OMO Desktop·Senpi·Codex Light·Windows·tmux·팀 모드·TUI 전용 기능은 이 환경에서 쓰지 않습니다.
+- 대시보드가 기대는 동작(삽입 메시지 표식, 계획 체크리스트 규칙, `boulder.json` 모양, 에이전트·카테고리 이름, Hephaestus 모델 제약)은 바꾸지 않습니다. 바꿔야 하면 대시보드 테스트와 함께 바꿉니다.
+
+## 바꾼 것
+
+| 영역 | 내용 | 파일 |
+|---|---|---|
+| 구독 한도 관측 | 엔진이 보내는 Claude 요청(`api.anthropic.com/v1/messages`)과 ChatGPT 요청(`chatgpt.com/backend-api/codex/responses`)의 **응답 헤더 중** `anthropic-ratelimit-unified-*`·`x-codex-*`만 `~/.cache/oh-my-opencode/usage/<anthropic\|openai>.json`에 남깁니다(2초에 한 번, 권한 600). 요청 헤더(OAuth 토큰)와 본문은 읽지 않고, 응답 객체는 그대로 돌려줍니다. 끄기: `OMO_ND_USAGE_OBSERVER=0`, 위치 바꾸기: `OMO_ND_USAGE_DIR` | `packages/omo-opencode/src/features/nd-usage-observer/` |
+| 텔레메트리 | 익명 사용 통계를 **기본으로 보내지 않음**(업스트림은 기본 전송). `telemetry: true` 또는 `OMO_SEND_ANONYMOUS_TELEMETRY=1`일 때만 보냄 | `packages/omo-opencode/src/shared/posthog.ts` |
+| postinstall | 이 저장소에서 `bun install`을 하면 업스트림 postinstall이 OpenCode의 플러그인 캐시(`~/.cache/opencode/packages/oh-my-openagent@*`)를 지웁니다 — 실행 중인 엔진이 읽는 파일이 사라짐(2026-10-13 실제로 발생). 설치된 사본(`node_modules` 아래)일 때만 지우게 함 | `postinstall.mjs` |
+| 빌드 | `opencode-plugin` 빌드 프로필: OpenCode 플러그인에 필요한 것만(서버·TUI 번들, 내장 스킬, CLI, 스키마, LSP·git-bash MCP) | `script/build-nodes.ts` |
+| 배포 | `script/nd-release.ts`: 커밋 하나를 빌드 → npm 이름 `oh-my-openagent`로 포장(플랫폼 바이너리·Codex 플러그인 제외) → `~/.local/share/oh-my-openagent-nd/<버전>/`에 스크립트 없이 설치 → 두 진입점 불러오기 확인 → `nd-release.json` | `script/nd-release.ts` |
+
+## 빌드와 배포
+
+```bash
+bun install --frozen-lockfile        # 처음 한 번 (이 브랜치의 postinstall은 OpenCode 캐시를 건드리지 않음)
+bun test packages/omo-opencode/src/features/nd-usage-observer
+# package.json의 version을 5.1.19-nd.<n+1>로 올리고 커밋한 뒤
+bun run script/nd-release.ts         # → 마지막 줄의 file:// 항목
+```
+
+설치된 릴리스는 고치지 않습니다(같은 버전이 있으면 거부). 엔진에 적용하는 절차 — 격리 엔진 검증(`npm run upgrade:check -- --omo <file:// 항목>`), 설정 백업, 실행 중인 세션이 없을 때 `opencode.json`·`tui.json`의 플러그인 항목 교체, 엔진 재시작 — 은 nd-work-command의 `docs/SETUP.md` §8에 있습니다.
+
+## 업스트림 따라가기
+
+새 업스트림 버전을 통째로 올리지 않습니다. 이 환경에서 쓰는 경로(OpenCode 플랫폼, 위 기능들)의 버그 수정만 골라 `git cherry-pick -x`로 가져오고, 가져온 커밋은 아래 표에 남깁니다. 기준 자체를 옮길 때는(예: v5.1.30) 그 태그에서 새 `nd/custom-<버전>` 브랜치를 만들어 위 변경을 다시 얹고 같은 검증을 거칩니다.
+
+| 업스트림 커밋 | 내용 | 가져온 날 |
+|---|---|---|
+| — | — | — |
+
+## 되돌리기
+
+`opencode.json`·`tui.json`의 플러그인 항목을 백업본(또는 `oh-my-openagent@5.1.19`)으로 되돌리고 엔진을 다시 시작합니다. 릴리스 폴더는 지워도 되고 남겨 둬도 됩니다.

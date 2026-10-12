@@ -17,3 +17,7 @@ import { join } from "node:path"
 const xdgRoot = mkdtempSync(join(tmpdir(), "omo-test-xdg-"))
 process.env.XDG_DATA_HOME = join(xdgRoot, "data")
 process.env.XDG_CACHE_HOME = join(xdgRoot, "cache")
+
+// nd custom: plugin-module tests must not wrap the process-wide fetch with the usage observer
+// (its own tests opt back in per test).
+process.env.OMO_ND_USAGE_OBSERVER ??= "0"
