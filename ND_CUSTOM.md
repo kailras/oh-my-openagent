@@ -14,6 +14,7 @@
 | 텔레메트리 | 익명 사용 통계를 **기본으로 보내지 않음**(업스트림은 기본 전송). `telemetry: true` 또는 `OMO_SEND_ANONYMOUS_TELEMETRY=1`일 때만 보냄 | `packages/omo-opencode/src/shared/posthog.ts` |
 | postinstall | 이 저장소에서 `bun install`을 하면 업스트림 postinstall이 OpenCode의 플러그인 캐시(`~/.cache/opencode/packages/oh-my-openagent@*`)를 지웁니다 — 실행 중인 엔진이 읽는 파일이 사라짐(2026-10-13 실제로 발생). 설치된 사본(`node_modules` 아래)일 때만 지우게 함 | `postinstall.mjs` |
 | 빌드 | `opencode-plugin` 빌드 프로필: OpenCode 플러그인에 필요한 것만(서버·TUI 번들, 내장 스킬, CLI, 스키마, LSP·git-bash MCP) | `script/build-nodes.ts` |
+| 재시도 | 엔진 자신의 SQLite 쓰기 실패(`Failed to execute statement`, `database is locked`, `SQLITE_BUSY` — 2026-10-08 긴 하위 작업 2건이 이 오류로 끝남)를 다시 보낼 오류로 분류. 모델이나 요청 문제가 아니므로 작업을 끝내지 않고 대체 경로로 이어 감 | `packages/model-core/src/runtime-fallback-retryable-patterns.ts` |
 | 배포 | `script/nd-release.ts`: 커밋 하나를 빌드 → npm 이름 `oh-my-openagent`로 포장(플랫폼 바이너리·Codex 플러그인 제외) → `~/.local/share/oh-my-openagent-nd/<버전>/`에 스크립트 없이 설치 → 두 진입점 불러오기 확인 → `nd-release.json` | `script/nd-release.ts` |
 
 ## 빌드와 배포
