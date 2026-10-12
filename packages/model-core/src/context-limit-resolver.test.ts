@@ -246,3 +246,16 @@ describe("resolveActualContextLimit", () => {
     expect(actualLimit).toBe(200_000)
   })
 })
+
+describe("nd custom: Claude 5 line", () => {
+  it("#given Claude 5.x models OpenCode lists with 1M context #when resolving #then all are 1M", () => {
+    for (const modelID of ["claude-sonnet-5-5", "claude-fable-5-1", "claude-sonnet-5-5-fast", "claude-opus-5-5", "claude-opus-5-5-fast", "claude-fable-5"]) {
+      expect(resolveActualContextLimit("anthropic", modelID)).toBe(1_000_000)
+    }
+  })
+
+  it("#given a model outside the Claude 5 line #when resolving #then the 200K default stays", () => {
+    expect(resolveActualContextLimit("anthropic", "claude-haiku-5-5")).toBe(200_000)
+    expect(resolveActualContextLimit("anthropic", "claude-3-5-sonnet")).toBe(200_000)
+  })
+})

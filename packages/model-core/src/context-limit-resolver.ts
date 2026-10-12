@@ -27,7 +27,12 @@ function getAnthropicActualLimit(modelCacheState?: ContextLimitModelCacheState):
 function hasGA1MContext(modelID: string): boolean {
   return /^claude-(opus|sonnet)-4(?:-|\.)(?:6|7|8)(?:-high)?$/.test(modelID) ||
     /^claude-(?:fable|mythos|sonnet)-5$/.test(modelID) ||
-    /^(?:anthropic\/|(?:(?:us|eu|global|jp|au)\.)?anthropic\.)?claude-opus-5(?:-fast|(?:-|\.)5)?(?:-\d{8})?(?:@default)?$/.test(modelID)
+    /^(?:anthropic\/|(?:(?:us|eu|global|jp|au)\.)?anthropic\.)?claude-opus-5(?:-fast|(?:-|\.)5)?(?:-\d{8})?(?:@default)?$/.test(modelID) ||
+    // nd custom: the whole Claude 5 line is 1M on OpenCode 1.18.34's model list (opus/sonnet/fable 5, 5.1, 5.5 and
+    // -fast, checked 2026-10-13 on /config/providers); upstream still counted sonnet-5-5 and fable-5-1 as 200K, so tool
+    // output from those agents was cut at about 100K.
+    // Released minors only (5.1, 5.5), as upstream does for Opus.
+    /^(?:anthropic\/)?claude-(?:opus|sonnet|fable|mythos)-5(?:(?:-|\.)[15])?(?:-fast)?(?:-\d{8})?$/.test(modelID)
 }
 
 export function resolveActualContextLimit(

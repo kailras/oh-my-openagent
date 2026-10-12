@@ -14,6 +14,15 @@ export type HeuristicModelFamilyDefinition = {
 
 export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<HeuristicModelFamilyDefinition> = [
   {
+    // nd custom: OpenCode 1.18.34 lists low, medium, high, xhigh and max for every Claude 5 model (opus, sonnet,
+    // fable 5.x; /config/providers, 2026-10-13). Without runtime provider data the older Claude families below would
+    // downgrade a configured xhigh/max — e.g. Sonnet 5.5 at xhigh ran with no effort at all.
+    family: "claude-5",
+    pattern: /claude-(?:opus|sonnet|fable|mythos)-5(?:$|[-.])/,
+    variants: ["low", "medium", "high", "xhigh", "max"],
+    supportsThinking: true,
+  },
+  {
     family: "claude-opus",
     pattern: /claude(?:-\d+(?:-\d+)*)?-opus/,
     variants: ["low", "medium", "high", "max"],
