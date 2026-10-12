@@ -26,4 +26,9 @@ export const RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS = [
   /暂时不可用/,
   /服务不可用/,
   /请稍后重试/,
+  // nd custom: OpenCode 1.18's own SQLite write failing mid-run (seen 2026-10-08 on two long subagent runs: "UnknownError:
+  // Failed to execute statement"). Nothing is wrong with the model or the request, so it is worth sending again.
+  /failed\s+to\s+execute\s+statement/i,
+  /database\s+is\s+locked/i,
+  /sqlite_busy/i,
 ] as const

@@ -353,3 +353,20 @@ describe("runtime fallback error classifier", () => {
     }
   })
 })
+
+describe("nd custom: engine storage failures", () => {
+  test("#given OpenCode's SQLite write failing mid-run #when classifying #then the run is retried", () => {
+    //#given the shape the engine reported on 2026-10-08 (session.error / message error)
+    const cases = [
+      { name: "UnknownError", data: { message: "Failed to execute statement" } },
+      { name: "UnknownError", message: "SQLiteError: database is locked" },
+      { name: "UnknownError", message: "SQLITE_BUSY: database is busy" },
+    ]
+
+    //#when
+    const results = cases.map((error) => isRuntimeFallbackRetryableError(error, [...DEFAULT_RETRY_CODES]))
+
+    //#then
+    expect(results).toEqual([true, true, true])
+  })
+})
