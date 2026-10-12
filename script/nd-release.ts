@@ -3,12 +3,15 @@
  * nd custom: builds this fork as the OpenCode plugin package and installs it as an immutable release that
  * `~/.config/opencode/opencode.json` (and `tui.json`) pin with a `file://` plugin entry.
  *
- *   bun run script/nd-release.ts [--allow-dirty] [--no-build] [--out <dir>]
+ *   bun run script/nd-release.ts [--allow-dirty] [--out <dir>]
  *
  * 1. Refuses uncommitted changes, so a release is exactly one commit (`--allow-dirty` for a local trial only).
- * 2. Builds the `opencode-plugin` profile (script/build-nodes.ts): no Codex Light plugin, Senpi or native binary.
+ * 2. Builds the `opencode-plugin` profile (script/build-nodes.ts): no Codex Light plugin, Senpi or native binary —
+ *    always, so the bundle is this commit's (an older build would ship under a new name).
  * 3. Stages the published layout under the npm name `oh-my-openagent`, without the platform-binary packages and the
- *    Codex plugin files, and packs it.
+ *    Codex plugin files, with its runtime dependencies pinned to the exact versions the build and tests used (the
+ *    workspace's node_modules, from bun.lock) — a range would resolve to whatever the registry has on release day —
+ *    and packs it.
  * 4. Installs the tarball with `npm install --ignore-scripts` into `<out>/<version>/` (default
  *    `~/.local/share/oh-my-openagent-nd`). Scripts stay off: upstream's postinstall clears OpenCode's plugin cache.
  * 5. Imports both entry points as a smoke test, writes `nd-release.json` and prints the plugin entry.
@@ -17,7 +20,7 @@
  */
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
@@ -71,10 +74,9 @@ const outRoot = resolve(option("--out") ?? join(process.env.XDG_DATA_HOME ?? joi
 const releaseDir = join(outRoot, version)
 if (existsSync(releaseDir)) fail(`${releaseDir} already exists — releases are immutable; bump the -nd.N version`)
 
-if (!flag("--no-build")) {
-	console.log(`nd-release: building ${version} (${commit.slice(0, 9)}) with the opencode-plugin profile`)
-	run("bun", ["run", "script/build.ts"], { env: { ...process.env, OMO_BUILD_PROFILE: "opencode-plugin" } })
-}
+if (flag("--no-build")) fail("--no-build is gone: a release is always built from its own commit")
+console.log(`nd-release: building ${version} (${commit.slice(0, 9)}) with the opencode-plugin profile`)
+run("bun", ["run", "script/build.ts"], { env: { ...process.env, OMO_BUILD_PROFILE: "opencode-plugin" } })
 for (const required of ["dist/index.js", "dist/tui.js", "dist/cli/index.js", "dist/skills", "packages/lsp-tools-mcp/dist"]) {
 	if (!existsSync(join(repoRoot, required))) fail(`build output missing: ${required}`)
 }
@@ -97,6 +99,14 @@ const published: Record<string, unknown> = { ...pkg, name: "oh-my-openagent", fi
 for (const key of ["optionalDependencies", "devDependencies", "workspaces", "scripts", "trustedDependencies", "overrides", "packageManager"]) {
 	delete published[key]
 }
+// Exact versions of what the build was made and tested with (bun.lock, as installed in the workspace).
+const pinned: Record<string, string> = {}
+for (const name of Object.keys((pkg.dependencies as Record<string, string> | undefined) ?? {})) {
+	const manifest = join(repoRoot, "node_modules", name, "package.json")
+	if (!existsSync(manifest)) fail(`dependency ${name} is not installed in the workspace — run the repository's install first`)
+	pinned[name] = (JSON.parse(readFileSync(manifest, "utf8")) as { version: string }).version
+}
+published.dependencies = pinned
 published.nd = { commit, branch, base: baseTag, builtAt: new Date().toISOString() }
 writeFileSync(join(stage, "package.json"), `${JSON.stringify(published, null, 2)}\n`)
 
@@ -129,7 +139,35 @@ try {
 	)
 	if (!smoke.endsWith("ok")) throw new Error(`smoke import failed: ${smoke}`)
 	const entry = pathToFileURL(pluginDir).href
-	const manifest = { version, commit, branch, base: baseTag, builtAt: (published.nd as { builtAt: string }).builtAt, tarball: tarballName, sha256, pluginEntry: entry }
+	// Direct dependencies are pinned above; what npm resolved below them is recorded, so a release says exactly what
+	// it runs (the directory is never changed afterwards).
+	const installed: Record<string, string> = {}
+	const record = (dir: string) => {
+		for (const name of existsSync(dir) ? readdirSync(dir) : []) {
+			if (name.startsWith(".")) continue
+			if (name.startsWith("@")) {
+				record(join(dir, name))
+				continue
+			}
+			const manifestFile = join(dir, name, "package.json")
+			if (!existsSync(manifestFile)) continue
+			const info = JSON.parse(readFileSync(manifestFile, "utf8")) as { name?: string; version?: string }
+			if (info.name && info.version && info.name !== "oh-my-openagent") installed[info.name] = info.version
+		}
+	}
+	record(join(releaseDir, "node_modules"))
+	const manifest = {
+		version,
+		commit,
+		branch,
+		base: baseTag,
+		builtAt: (published.nd as { builtAt: string }).builtAt,
+		tarball: tarballName,
+		sha256,
+		pluginEntry: entry,
+		dependencies: pinned,
+		installed,
+	}
 	writeFileSync(join(releaseDir, "nd-release.json"), `${JSON.stringify(manifest, null, 2)}\n`)
 	console.log(`nd-release: installed ${version} → ${releaseDir}`)
 	console.log(`nd-release: plugin entry for opencode.json and tui.json:\n  "${entry}"`)

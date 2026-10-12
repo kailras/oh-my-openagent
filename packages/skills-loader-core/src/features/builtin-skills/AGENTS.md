@@ -72,7 +72,7 @@ Only one browser skill is active per session; non-selected variants are skipped.
 `resolveActiveBuiltinSkills({ systemMcpNames })` additionally filters out builtin
 skills whose declared MCP names collide with system MCP names.
 
-For the `playwright` (MCP) variant, `browser_automation_engine.playwright_mcp_args` (string array) appends extra CLI flags after the default `npx @playwright/mcp@latest` invocation, e.g. `--executable-path` or `--no-sandbox` for sandboxed envs lacking a system Chrome. Threaded via `createBuiltinSkills({ playwrightMcpArgs })` into `createPlaywrightSkill({ mcp_args })` (`skills/playwright-mcp-skill.ts`); absent or empty leaves the default singleton byte-identical.
+For the `playwright` (MCP) variant, `browser_automation_engine.playwright_mcp_args` (string array) appends extra CLI flags after the default `npx @playwright/mcp@0.0.83 --headless --isolated` invocation (nd custom pin), e.g. `--executable-path` or `--no-sandbox` for sandboxed envs lacking a system Chrome. Threaded via `createBuiltinSkills({ playwrightMcpArgs })` into `createPlaywrightSkill({ mcp_args })` (`skills/playwright-mcp-skill.ts`); absent or empty leaves the default singleton byte-identical.
 
 ## TEAM-MODE SKILL GATING
 

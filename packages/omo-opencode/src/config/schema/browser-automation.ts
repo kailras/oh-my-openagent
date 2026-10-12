@@ -17,7 +17,7 @@ export const BrowserAutomationConfigSchema = z.object({
    */
   provider: BrowserAutomationProviderSchema.default("playwright"),
   /**
-   * Extra CLI arguments appended to the default `@playwright/mcp@latest`
+   * Extra CLI arguments appended to the default `@playwright/mcp@0.0.83 --headless --isolated` (nd custom pin)
    * invocation. Only applied when `provider` is `"playwright"`.
    *
    * The Playwright MCP server defaults to launching the `chrome` channel from

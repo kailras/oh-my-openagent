@@ -188,4 +188,49 @@ describe("createSnapshotWriter", () => {
     expect(writes.map((w) => JSON.parse(w.content).observedAt)).toEqual([1, 3])
     expect(writes[0]?.file).toBe(join(directory, "anthropic.json"))
   })
+
+  it("#given a folder that cannot be written #when responses keep coming #then it is tried once per interval, not on every response", () => {
+    // given
+    let clock = 50_000
+    let attempts = 0
+    const writer = createSnapshotWriter({
+      directory,
+      now: () => clock,
+      write: () => {
+        attempts++
+        throw new Error("EACCES")
+      },
+    })
+    const snapshot = (observedAt: number) => ({ version: 1 as const, provider: "openai" as const, observedAt, httpStatus: 200, headers: { "x-codex-primary-used-percent": "10" } })
+
+    // when
+    writer.record(snapshot(1))
+    for (let i = 2; i < 20; i++) writer.record(snapshot(i))
+    clock += WRITE_INTERVAL_MS
+    writer.flushAll()
+
+    // then
+    expect(attempts).toBe(2)
+  })
+
+  it("#given the default writer #when two snapshots are written #then the file holds the latest and no temporary file is left", async () => {
+    // given
+    const { mkdtempSync, readdirSync, readFileSync, rmSync } = await import("node:fs")
+    const { tmpdir } = await import("node:os")
+    const dir = mkdtempSync(join(tmpdir(), "nd-usage-"))
+    let clock = 1
+    const writer = createSnapshotWriter({ directory: dir, now: () => clock })
+    const snapshot = (observedAt: number) => ({ version: 1 as const, provider: "anthropic" as const, observedAt, httpStatus: 200, headers: { "anthropic-ratelimit-unified-status": "allowed" } })
+
+    // when
+    writer.record(snapshot(1))
+    clock += WRITE_INTERVAL_MS
+    writer.record(snapshot(2))
+    writer.flushAll()
+
+    // then
+    expect(JSON.parse(readFileSync(join(dir, "anthropic.json"), "utf8")).observedAt).toBe(2)
+    expect(readdirSync(dir)).toEqual(["anthropic.json"])
+    rmSync(dir, { recursive: true, force: true })
+  })
 })

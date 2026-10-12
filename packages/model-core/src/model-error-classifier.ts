@@ -1,6 +1,7 @@
 import type { FallbackEntry } from "./model-requirements"
 import type { ProviderCache } from "./provider-cache"
 import * as connectedProvidersCache from "./connected-providers-cache"
+import { isEngineStorageError } from "./engine-storage-error"
 import { classifyRuntimeFallbackError, isTerminalQuotaError } from "./runtime-fallback-error-classifier"
 
 /**
@@ -123,6 +124,12 @@ export function isRetryableModelError(error: ErrorInfo): boolean {
   }
 
   if (errorNameLower !== undefined && RETRYABLE_ERROR_NAMES.has(errorNameLower)) {
+    return true
+  }
+
+  // nd custom: the engine's own storage failing mid-run (background tasks, sync delegation and model fallback all
+  // decide here, with runtime_fallback off by default).
+  if (isEngineStorageError(error)) {
     return true
   }
 

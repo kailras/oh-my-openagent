@@ -16,6 +16,7 @@ import {
   getRuntimeFallbackRetryableSignal,
   getRuntimeFallbackStatusCode,
 } from "./runtime-fallback-error-shape"
+import { isEngineStorageError } from "./engine-storage-error"
 import { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "./runtime-fallback-retryable-patterns"
 
 export type RuntimeFallbackErrorType =
@@ -199,6 +200,9 @@ export function isRuntimeFallbackRetryableError(
 
     options.onUnsafeRetryableSignalRejected?.({ statusCode, retryOnErrors })
   }
+
+  // nd custom: see engine-storage-error.ts.
+  if (isEngineStorageError({ name: getRuntimeFallbackErrorName(error), message })) return true
 
   return RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS.some((pattern) => pattern.test(message))
 }

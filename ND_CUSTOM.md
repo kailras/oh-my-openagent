@@ -10,14 +10,14 @@
 
 | 영역 | 내용 | 파일 |
 |---|---|---|
-| 구독 한도 관측 | 엔진이 보내는 Claude 요청(`api.anthropic.com/v1/messages`)과 ChatGPT 요청(`chatgpt.com/backend-api/codex/responses`)의 **응답 헤더 중** `anthropic-ratelimit-unified-*`·`x-codex-*`만 `~/.cache/oh-my-opencode/usage/<anthropic\|openai>.json`에 남깁니다(2초에 한 번, 권한 600). 요청 헤더(OAuth 토큰)와 본문은 읽지 않고, 응답 객체는 그대로 돌려줍니다. 끄기: `OMO_ND_USAGE_OBSERVER=0`, 위치 바꾸기: `OMO_ND_USAGE_DIR` | `packages/omo-opencode/src/features/nd-usage-observer/` |
+| 구독 한도 관측 | 엔진이 보내는 Claude 요청(`api.anthropic.com/v1/messages`)과 ChatGPT 요청(`chatgpt.com/backend-api/codex/responses`)의 **응답 헤더 중** `anthropic-ratelimit-unified-*`·`x-codex-*`만 `~/.cache/oh-my-opencode/usage/<anthropic\|openai>.json`에 남깁니다(2초에 한 번 — 쓰기에 실패해도 다음 시도는 2초 뒤, 권한 600, 프로세스마다 다른 임시 파일로 한 번에 교체). 요청 헤더(OAuth 토큰)와 본문은 읽지 않고, 응답 객체는 그대로 돌려줍니다. 끄기: `OMO_ND_USAGE_OBSERVER=0`, 위치 바꾸기: `OMO_ND_USAGE_DIR` | `packages/omo-opencode/src/features/nd-usage-observer/` |
 | 텔레메트리 | 익명 사용 통계를 **기본으로 보내지 않음**(업스트림은 기본 전송). `telemetry: true` 또는 `OMO_SEND_ANONYMOUS_TELEMETRY=1`일 때만 보냄 | `packages/omo-opencode/src/shared/posthog.ts` |
 | postinstall | 이 저장소에서 `bun install`을 하면 업스트림 postinstall이 OpenCode의 플러그인 캐시(`~/.cache/opencode/packages/oh-my-openagent@*`)를 지웁니다 — 실행 중인 엔진이 읽는 파일이 사라짐(2026-10-13 실제로 발생). 설치된 사본(`node_modules` 아래)일 때만 지우게 함 | `postinstall.mjs` |
 | 빌드 | `opencode-plugin` 빌드 프로필: OpenCode 플러그인에 필요한 것만(서버·TUI 번들, 내장 스킬, CLI, 스키마, LSP·git-bash MCP) | `script/build-nodes.ts` |
-| 재시도 | 엔진 자신의 SQLite 쓰기 실패(`Failed to execute statement`, `database is locked`, `SQLITE_BUSY` — 2026-10-08 긴 하위 작업 2건이 이 오류로 끝남)를 다시 보낼 오류로 분류. 모델이나 요청 문제가 아니므로 작업을 끝내지 않고 대체 경로로 이어 감 | `packages/model-core/src/runtime-fallback-retryable-patterns.ts` |
+| 재시도 | 엔진 자신의 SQLite 쓰기 실패(`Failed to execute statement`, `database is locked`, `SQLITE_BUSY` — 2026-10-08 긴 하위 작업 2건이 이 오류로 끝남)를 다시 보낼 오류로 분류. nd.3부터 하위 작업·동기 위임·모델 대체가 쓰는 `shouldRetryError`에도 적용(nd.1~2는 기본으로 꺼진 runtime_fallback 훅에만 있어 실제로는 효과가 없었음). 오류 이름이 `UnknownError`(또는 이름 없음)일 때만, 오류에만 맞춰 보고 어시스턴트 답변 본문에는 쓰지 않음(SQLite를 다루는 답변이 '재시도 신호'로 오인되지 않게). 같은 문구가 디스크 가득 참 같은 지속 오류도 덮으므로 횟수는 각 경로의 재시도 한도(`max_fallback_attempts`, 대체 모델 목록)가 막음 | `packages/model-core/src/engine-storage-error.ts` |
 | Claude 5 계열 | 엔진(OpenCode 1.18.34)이 Claude 5.x 전부를 1M 문맥·low~max 강도로 보는데, OMO는 sonnet-5-5·fable-5-1을 200K로 계산하고(도구 출력이 약 100K에서 잘림) Sonnet의 xhigh·max를 버렸음(실제 기록에서 강도 없이 실행). 두 판단을 엔진과 맞춤 | `packages/model-core/src/context-limit-resolver.ts`, `model-capability-heuristics.ts` |
-| Playwright MCP | 내장 `playwright` 스킬이 `npx @playwright/mcp@latest`(시작마다 최신을 받음, 화면에 창, 디스크에 프로필)로 돌던 것을 `@playwright/mcp@0.0.83 --headless --isolated`로 고정. 엔진은 백그라운드 서비스라 창이 뜰 일이 없어야 하고, 병렬 하위 작업이 한 프로필을 두고 다투지 않음 | `packages/skills-loader-core/src/features/builtin-skills/skills/playwright-mcp-skill.ts` |
-| 배포 | `script/nd-release.ts`: 커밋 하나를 빌드 → npm 이름 `oh-my-openagent`로 포장(플랫폼 바이너리·Codex 플러그인 제외) → `~/.local/share/oh-my-openagent-nd/<버전>/`에 스크립트 없이 설치 → 두 진입점 불러오기 확인 → `nd-release.json` | `script/nd-release.ts` |
+| Playwright MCP | 내장 `playwright` 스킬이 `npx @playwright/mcp@latest`(시작마다 최신을 받음, 화면에 창, 디스크에 프로필)로 돌던 것을 `@playwright/mcp@0.0.83 --headless --isolated`로 고정. 엔진은 백그라운드 서비스라 창이 뜰 일이 없어야 하고, 병렬 하위 작업이 한 프로필을 두고 다투지 않음(nd.3: 설정 설명·시험 기대값도 고정값으로) | `packages/skills-loader-core/src/features/builtin-skills/skills/playwright-mcp-skill.ts` |
+| 배포 | `script/nd-release.ts`: 커밋 하나를 **항상 새로** 빌드(`--no-build` 없앰 — 옛 빌드가 새 이름으로 나가지 않게) → npm 이름 `oh-my-openagent`로 포장(플랫폼 바이너리·Codex 플러그인 제외, 직접 의존성은 빌드·시험에 쓴 정확한 버전으로 — nd.2는 `^` 범위가 릴리스 날의 zod 4.6.7로 풀렸음) → `~/.local/share/oh-my-openagent-nd/<버전>/`에 스크립트 없이 설치 → 두 진입점 불러오기 확인 → `nd-release.json`(그 아래 단계까지 설치된 버전 목록 포함) | `script/nd-release.ts` |
 
 ## 빌드와 배포
 

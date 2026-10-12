@@ -1,9 +1,8 @@
-import { mkdirSync } from "node:fs"
+import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { getOmoOpenCodeCacheDir } from "../../shared/data-path"
 import { log } from "../../shared/logger"
-import { writeFileAtomically } from "../../shared/write-file-atomically"
 
 /**
  * nd custom (for the nd-work-command dashboard): keeps the latest subscription rate-limit state that providers report
@@ -78,8 +77,19 @@ function defaultDirectory(): string {
   return override ? override : join(getOmoOpenCodeCacheDir(), "usage")
 }
 
+/**
+ * Replaces the file in one step, through a temporary file of its own: two engine processes sharing the cache (the
+ * service and a TUI) never write the same temporary file. Owner-only, as the readings say how much the user works.
+ */
 function defaultWrite(file: string, content: string): void {
-  writeFileAtomically(file, content, { mode: 0o600 })
+  const temp = `${file}.${process.pid}.${Math.random().toString(36).slice(2, 10)}.tmp`
+  try {
+    writeFileSync(temp, content, { encoding: "utf-8", mode: 0o600 })
+    renameSync(temp, file)
+  } catch (error) {
+    rmSync(temp, { force: true })
+    throw error
+  }
 }
 
 /** Writes snapshots to `<directory>/<provider>.json`, throttled per provider. */
@@ -95,11 +105,12 @@ export function createSnapshotWriter(options: UsageObserverOptions = {}) {
     pending.delete(provider)
     timers.delete(provider)
     if (!snapshot) return
+    // A failed attempt counts too: a folder that cannot be written must not be retried (and logged) on every response.
+    lastWrite.set(provider, now())
     try {
       const directory = options.directory ?? defaultDirectory()
       mkdirSync(directory, { recursive: true })
       write(join(directory, `${provider}.json`), `${JSON.stringify(snapshot)}\n`)
-      lastWrite.set(provider, now())
     } catch (error) {
       log("[nd-usage-observer] write failed", { provider, error: error instanceof Error ? error.message : String(error) })
     }

@@ -360,8 +360,11 @@ describe("createSkillContext", () => {
       // then
       expect(result.browserProvider).toBe("playwright")
       const playwright = result.mergedSkills.find((skill) => skill.name === "playwright")
+      // nd custom: the pinned, headless, isolated base comes first, the configured args after it.
       expect(playwright?.mcpConfig?.playwright?.args).toEqual([
-        "@playwright/mcp@latest",
+        "@playwright/mcp@0.0.83",
+        "--headless",
+        "--isolated",
         "--headless",
         "--executable-path",
         "/opt/chromium/chrome",
