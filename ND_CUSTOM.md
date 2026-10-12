@@ -15,6 +15,7 @@
 | postinstall | 이 저장소에서 `bun install`을 하면 업스트림 postinstall이 OpenCode의 플러그인 캐시(`~/.cache/opencode/packages/oh-my-openagent@*`)를 지웁니다 — 실행 중인 엔진이 읽는 파일이 사라짐(2026-10-13 실제로 발생). 설치된 사본(`node_modules` 아래)일 때만 지우게 함 | `postinstall.mjs` |
 | 빌드 | `opencode-plugin` 빌드 프로필: OpenCode 플러그인에 필요한 것만(서버·TUI 번들, 내장 스킬, CLI, 스키마, LSP·git-bash MCP) | `script/build-nodes.ts` |
 | 재시도 | 엔진 자신의 SQLite 쓰기 실패(`Failed to execute statement`, `database is locked`, `SQLITE_BUSY` — 2026-10-08 긴 하위 작업 2건이 이 오류로 끝남)를 다시 보낼 오류로 분류. 모델이나 요청 문제가 아니므로 작업을 끝내지 않고 대체 경로로 이어 감 | `packages/model-core/src/runtime-fallback-retryable-patterns.ts` |
+| Claude 5 계열 | 엔진(OpenCode 1.18.34)이 Claude 5.x 전부를 1M 문맥·low~max 강도로 보는데, OMO는 sonnet-5-5·fable-5-1을 200K로 계산하고(도구 출력이 약 100K에서 잘림) Sonnet의 xhigh·max를 버렸음(실제 기록에서 강도 없이 실행). 두 판단을 엔진과 맞춤 | `packages/model-core/src/context-limit-resolver.ts`, `model-capability-heuristics.ts` |
 | 배포 | `script/nd-release.ts`: 커밋 하나를 빌드 → npm 이름 `oh-my-openagent`로 포장(플랫폼 바이너리·Codex 플러그인 제외) → `~/.local/share/oh-my-openagent-nd/<버전>/`에 스크립트 없이 설치 → 두 진입점 불러오기 확인 → `nd-release.json` | `script/nd-release.ts` |
 
 ## 빌드와 배포
@@ -32,9 +33,15 @@ bun run script/nd-release.ts         # → 마지막 줄의 file:// 항목
 
 새 업스트림 버전을 통째로 올리지 않습니다. 이 환경에서 쓰는 경로(OpenCode 플랫폼, 위 기능들)의 버그 수정만 골라 `git cherry-pick -x`로 가져오고, 가져온 커밋은 아래 표에 남깁니다. 기준 자체를 옮길 때는(예: v5.1.30) 그 태그에서 새 `nd/custom-<버전>` 브랜치를 만들어 위 변경을 다시 얹고 같은 검증을 거칩니다.
 
-| 업스트림 커밋 | 내용 | 가져온 날 |
+| 업스트림 PR (커밋) | 내용 | 가져온 날 |
 |---|---|---|
-| — | — | — |
+| #9013 (`8bb682c0d` `6927c3307` `10125ee7f`) | 카테고리 작업이 내장 카테고리의 강도를 물려받아 설정한 model·reasoning과 다르게 나감(quick xhigh→low 등) | 2026-10-13 |
+| #9984 (`cf8dd054d` `2fc35ebe7` `379bc1faa` `37eb07c8e` `0af98e594`) | `taskCleanupDelayMs`(이 환경 24시간)보다 먼저 끝난 작업 기록을 30분에 지워, 하위 세션이 지워지지 않고 남음 | 2026-10-13 |
+| #7255 (`0f779851f` `f66705a3b` `1228b1106` `8a0e60cc2` `75e064206`) | 글 속 `ulw-plan`·`ulw-execute` 같은 스킬 이름만으로 ultrawork가 켜지고 이후 턴마다 다시 붙음 | 2026-10-13 |
+| #7260 (`e09ad60b8` `2f2589b55` `8ecb96d5e`) | Opus 5를 200K로 계산해 도구 출력을 일찍 자름 | 2026-10-13 |
+| #10041 (`7083c79fb` `bce861b99`) | 지워진 하위 세션을 만나면 세션 도구 호출 전체가 `[object Object]`로 실패 | 2026-10-13 |
+
+충돌은 `CHANGELOG.md`·`changes.md`·senpi 번들뿐이었고 이 브랜치 쪽을 남겼습니다. 나중 후보(보류): #10001(실시간 모델 정보로 chat.params), #9594(LSP 첫 진단 경쟁), #9731(홈 `.omo` 보호), #7256(하위 세션 제목 앞 카테고리 — 대시보드 표시가 바뀜), #9023(세션 도구 범위 확대).
 
 ## 되돌리기
 
