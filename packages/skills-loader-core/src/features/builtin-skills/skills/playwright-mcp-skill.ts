@@ -1,7 +1,7 @@
 import type { BuiltinSkill } from "../types"
 
 /**
- * Extra CLI arguments appended to the default `@playwright/mcp@latest` invocation.
+ * Extra CLI arguments appended to the default Playwright MCP invocation (`BASE_MCP_ARGS`).
  *
  * By default the Playwright MCP server assumes it can launch the `chrome` channel
  * from a system-wide Chrome installation. In sandboxed environments (containers,
@@ -16,11 +16,18 @@ export interface PlaywrightSkillOptions {
   readonly mcp_args?: readonly string[]
 }
 
-const BASE_MCP_ARGS = ["@playwright/mcp@latest"] as const
+/**
+ * nd custom: an exact version instead of `@latest` (a fresh download on every start is a supply-chain risk and changes
+ * behaviour unannounced), headless (the engine runs as a background service; a headed browser would open windows on
+ * the user's screen) and isolated (profile in memory: nothing written to disk, and parallel subagents no longer fight
+ * over one persistent profile — the Playwright MCP README's advice for concurrent clients).
+ * 0.0.83 was published 2026-09-28; bump it like any other pin (nd-work-command docs/SETUP.md §8).
+ */
+const BASE_MCP_ARGS = ["@playwright/mcp@0.0.83", "--headless", "--isolated"] as const
 
 /**
  * Factory returning the `playwright` built-in skill. When `options.mcp_args` is
- * provided the values are appended after `@playwright/mcp@latest`, so the
+ * provided the values are appended after `BASE_MCP_ARGS`, so the
  * default invocation stays byte-identical to the legacy const-export when
  * called with no options.
  */

@@ -23,7 +23,7 @@ export interface CreateBuiltinSkillsOptions {
   disabledSkills?: Set<string>
   teamModeEnabled?: boolean
   /**
-   * Extra CLI arguments appended to the default `@playwright/mcp@latest`
+   * Extra CLI arguments appended to the default Playwright MCP invocation (pinned, headless, isolated; nd custom)
    * invocation when `browserProvider` resolves to the `playwright` MCP variant.
    *
    * Only threaded through to `createPlaywrightSkill`; other browser providers

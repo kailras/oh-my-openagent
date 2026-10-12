@@ -31,7 +31,7 @@ describe("playwright browser skill facade", () => {
     expect(template).not.toContain("---")
     expect(mcpConfig).toEqual({
       command: "npx",
-      args: ["@playwright/mcp@latest"],
+      args: ["@playwright/mcp@0.0.83", "--headless", "--isolated"],
     })
   })
 
@@ -48,7 +48,7 @@ describe("playwright browser skill facade", () => {
     expect(skill.template).toBe(directPlaywrightSkill.template)
     expect(mcpConfig).toEqual({
       command: "npx",
-      args: ["@playwright/mcp@latest"],
+      args: ["@playwright/mcp@0.0.83", "--headless", "--isolated"],
     })
   })
 
@@ -63,7 +63,7 @@ describe("playwright browser skill facade", () => {
 
     // then
     expect(mcpArgs).toEqual([
-      "@playwright/mcp@latest",
+      "@playwright/mcp@0.0.83", "--headless", "--isolated",
       "--headless",
       "--no-sandbox",
       "--executable-path",
@@ -79,7 +79,7 @@ describe("playwright browser skill facade", () => {
     const mcpArgs = skill.mcpConfig?.playwright?.args
 
     // then
-    expect(mcpArgs).toEqual(["@playwright/mcp@latest"])
+    expect(mcpArgs).toEqual(["@playwright/mcp@0.0.83", "--headless", "--isolated"])
   })
 
   test("#given absent or empty custom args #when creating builtin skills #then the legacy singleton is reused", () => {

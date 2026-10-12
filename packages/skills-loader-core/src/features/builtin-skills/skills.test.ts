@@ -324,7 +324,7 @@ describe("createBuiltinSkills", () => {
 		// #then
 		expect(playwright?.mcpConfig?.playwright?.command).toBe("npx")
 		expect(playwright?.mcpConfig?.playwright?.args).toEqual([
-			"@playwright/mcp@latest",
+			"@playwright/mcp@0.0.83", "--headless", "--isolated",
 			"--headless",
 			"--no-sandbox",
 			"--executable-path",
@@ -341,6 +341,6 @@ describe("createBuiltinSkills", () => {
 		const playwright = skills.find((s) => s.name === "playwright")
 
 		// #then
-		expect(playwright?.mcpConfig?.playwright?.args).toEqual(["@playwright/mcp@latest"])
+		expect(playwright?.mcpConfig?.playwright?.args).toEqual(["@playwright/mcp@0.0.83", "--headless", "--isolated"])
 	})
 })

@@ -16,6 +16,7 @@
 | 빌드 | `opencode-plugin` 빌드 프로필: OpenCode 플러그인에 필요한 것만(서버·TUI 번들, 내장 스킬, CLI, 스키마, LSP·git-bash MCP) | `script/build-nodes.ts` |
 | 재시도 | 엔진 자신의 SQLite 쓰기 실패(`Failed to execute statement`, `database is locked`, `SQLITE_BUSY` — 2026-10-08 긴 하위 작업 2건이 이 오류로 끝남)를 다시 보낼 오류로 분류. 모델이나 요청 문제가 아니므로 작업을 끝내지 않고 대체 경로로 이어 감 | `packages/model-core/src/runtime-fallback-retryable-patterns.ts` |
 | Claude 5 계열 | 엔진(OpenCode 1.18.34)이 Claude 5.x 전부를 1M 문맥·low~max 강도로 보는데, OMO는 sonnet-5-5·fable-5-1을 200K로 계산하고(도구 출력이 약 100K에서 잘림) Sonnet의 xhigh·max를 버렸음(실제 기록에서 강도 없이 실행). 두 판단을 엔진과 맞춤 | `packages/model-core/src/context-limit-resolver.ts`, `model-capability-heuristics.ts` |
+| Playwright MCP | 내장 `playwright` 스킬이 `npx @playwright/mcp@latest`(시작마다 최신을 받음, 화면에 창, 디스크에 프로필)로 돌던 것을 `@playwright/mcp@0.0.83 --headless --isolated`로 고정. 엔진은 백그라운드 서비스라 창이 뜰 일이 없어야 하고, 병렬 하위 작업이 한 프로필을 두고 다투지 않음 | `packages/skills-loader-core/src/features/builtin-skills/skills/playwright-mcp-skill.ts` |
 | 배포 | `script/nd-release.ts`: 커밋 하나를 빌드 → npm 이름 `oh-my-openagent`로 포장(플랫폼 바이너리·Codex 플러그인 제외) → `~/.local/share/oh-my-openagent-nd/<버전>/`에 스크립트 없이 설치 → 두 진입점 불러오기 확인 → `nd-release.json` | `script/nd-release.ts` |
 
 ## 빌드와 배포
